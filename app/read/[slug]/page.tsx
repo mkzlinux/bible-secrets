@@ -92,6 +92,14 @@ export default async function ReadPage({ params }: { params: Promise<{ slug: str
                 </Link>
               </>
             )}
+            <a
+              href={`/api/read/${part.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-ghost text-sm"
+            >
+              Preview the opening pages
+            </a>
           </div>
           <ul className="mt-6 space-y-2 text-[12.5px] text-cream-dim">
             <li>· Cinematic reader with bookmarks and resume-where-you-stopped</li>
