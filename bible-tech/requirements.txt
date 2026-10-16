@@ -1,0 +1,3 @@
+Flask>=3.0
+# Everything else is the standard library on purpose: the compiler and the
+# engine both run on a bare Python 3.10+ install.

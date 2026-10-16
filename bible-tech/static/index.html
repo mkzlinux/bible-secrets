@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bereshit Lab — nested words · anagrams · verse graphs · letter codes</title>
+    <link rel="stylesheet" href="static/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Frank+Ruhl+Libre:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark">✦</span>
+        <span>
+          <strong>Bereshit Lab</strong>
+          <em>Nested words · anagrams · verse graphs · letter codes</em>
+        </span>
+      </div>
+      <form id="search-form" class="search">
+        <input id="search-input" placeholder="John 1:1 or a phrase" value="Gen.1.1" />
+        <button type="submit">Open</button>
+      </form>
+    </header>
+
+    <main>
+      <section class="verse-panel">
+        <div class="verse-head">
+          <span id="osis-label" class="osis">Gen.1.1</span>
+          <span id="verse-meta" class="meta"></span>
+          <nav class="stepper">
+            <button id="prev-verse" title="Previous verse">←</button>
+            <button id="next-verse" title="Next verse">→</button>
+          </nav>
+        </div>
+        <p id="hebrew" class="hebrew" dir="rtl"></p>
+        <p id="kjv" class="kjv"></p>
+        <p class="hint">
+          Click any Hebrew word to load it into the engine. The English verse always comes first.
+        </p>
+      </section>
+
+      <nav class="tabs" id="tabs">
+        <button data-tab="graph" class="active">Verse graph</button>
+        <button data-tab="nested">Words in a word</button>
+        <button data-tab="ciphers">Anagrams &amp; ciphers</button>
+        <button data-tab="els">Letter codes</button>
+        <button data-tab="method">How to build this</button>
+      </nav>
+
+      <section id="panel-graph" class="panel active">
+        <div class="split">
+          <canvas id="graph-canvas" width="640" height="420"></canvas>
+          <div class="list">
+            <h3>Outgoing references</h3>
+            <ul id="xref-out"></ul>
+            <h3>Cited by</h3>
+            <ul id="xref-in"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-nested" class="panel">
+        <div class="controls">
+          <input id="nested-input" dir="rtl" value="בראשית" />
+          <button id="nested-he">בראשית</button>
+          <button id="nested-en">English: beginning</button>
+        </div>
+        <div id="letter-cards" class="letter-cards" dir="rtl"></div>
+        <p id="nested-summary" class="summary"></p>
+        <div class="split">
+          <div class="list">
+            <h3>Consecutive hits</h3>
+            <ul id="nested-hits"></ul>
+          </div>
+          <div class="list">
+            <h3>Full-cover segmentations</h3>
+            <ul id="nested-segs"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-ciphers" class="panel">
+        <div class="controls">
+          <input id="cipher-input" dir="rtl" value="בראשית" />
+          <button id="cipher-run">Cipher it</button>
+        </div>
+        <div id="cipher-cards" class="cards"></div>
+        <div class="split">
+          <div class="list">
+            <h3>Gematria twins</h3>
+            <ul id="cipher-twins"></ul>
+          </div>
+          <div class="list">
+            <h3>Anagram twins</h3>
+            <ul id="cipher-anagrams"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-els" class="panel">
+        <p class="caveat" id="els-caveat"></p>
+        <div class="controls">
+          <input id="els-term" dir="rtl" value="תורה" />
+          <select id="els-scope">
+            <option value="Torah">Torah (Gen–Deut)</option>
+            <option value="Tanakh">Whole Tanakh</option>
+            <option value="Gen">Genesis only</option>
+          </select>
+          <label>min <input id="els-min" type="number" value="2" min="2" /></label>
+          <label>max <input id="els-max" type="number" value="30" min="3" /></label>
+          <button id="els-run">Search</button>
+        </div>
+        <ul id="els-hits" class="hits"></ul>
+      </section>
+
+      <section id="panel-method" class="panel method">
+        <h3>1 · Text layer</h3>
+        <p>
+          Public-domain only: King James Version, the Westminster Leningrad Codex via Open
+          Scriptures MorphHB, Strong's lexicon, and OpenBible.info cross-references. Hebrew is
+          stored as consonants (vowels and cantillation are display only) and final forms are
+          normalised; versification differences ride on MorphHB's VerseMap so the Hebrew sits on
+          the KJV verse id you actually read.
+        </p>
+        <h3>2 · Nested words</h3>
+        <p>
+          Consecutive substrings are looked up in the lexicon; single-letter prefixes
+          (ב ה ו כ ל מ ש) are allowed; a depth-first walk then finds every full-cover
+          segmentation up to four parts. Notarikon is a reading tradition — the instrument shows
+          the hits, not a verdict.
+        </p>
+        <h3>3 · Anagrams &amp; ciphers</h3>
+        <p>
+          Temurah (Atbash, Albam), anagram twins by consonant signature, and gematria twins by
+          value (mispar hechrachi). The alphabet is also a set of numbers: that is arithmetic,
+          not doctrine.
+        </p>
+        <h3>4 · Verse graph</h3>
+        <p>
+          Weighted edges from the Treasury of Scripture Knowledge, ranges expanded into atomic
+          verse-to-verse links. Click a node and it becomes the new centre.
+        </p>
+        <h3>5 · Letter codes</h3>
+        <p>
+          Concatenate a consonantal tape with a run-length map back to OSIS ids, then scan skip
+          distances. Treat the output as a curiosity with a visible caveat.
+        </p>
+        <h3>Build order</h3>
+        <p>
+          Compile the text → prove one verse end to end → add the lexicon → add the graph → add
+          the codes. In this repository: <code>python3 build_data.py &amp;&amp; python3 server.py</code>.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p id="stats">loading engine statistics…</p>
+      <p class="attribution">
+        KJV public domain · WLC via Open Scriptures MorphHB (CC BY 4.0) · Strong's via Open
+        Scriptures · cross-references from OpenBible.info (CC BY 4.0), derived from the Treasury of
+        Scripture Knowledge.
+      </p>
+    </footer>
+
+    <script src="static/app.js"></script>
+  </body>
+</html>

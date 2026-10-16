@@ -1,0 +1,25 @@
+{
+  "parts": [],
+  "partSeries": {},
+  "partOverrides": {},
+  "series": [],
+  "seriesOverrides": {},
+  "hiddenParts": [],
+  "sessions": [],
+  "users": [
+    {
+      "id": "e4e2d51c-6c8c-4e9f-8326-7011523d575f",
+      "email": "tinotenda@example.com",
+      "displayName": "Tinotenda Gwiriri",
+      "role": "admin",
+      "createdAt": "2026-10-16T21:10:02.197077+00:00",
+      "accessStartedAt": "2026-10-16T21:10:02.197077+00:00"
+    }
+  ],
+  "payments": [],
+  "grants": {},
+  "progress": [],
+  "bookmarks": [],
+  "highlights": [],
+  "comments": []
+}
