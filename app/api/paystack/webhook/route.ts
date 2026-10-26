@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
-import { findUser, id, recordPayment, setGrant, upsertUser } from "@/lib/store";
-import { PAYSTACK_SECRET_KEY } from "@/lib/config";
+import { findUser, id, recordPayment, setGrant, snapshot, upsertUser } from "@/lib/store";
+import { ACCESS_PERIOD_DAYS, PAYSTACK_CURRENCY, PAYSTACK_SECRET_KEY } from "@/lib/config";
 
 const DAY = 86_400_000;
 
@@ -34,15 +34,17 @@ export async function POST(request: Request) {
   if (event.event === "charge.success" && event.data?.customer?.email) {
     const email = event.data.customer.email;
     const amount = (event.data.amount ?? 0) / 100;
-    const currency = event.data.currency ?? "KES";
+    const currency = event.data.currency ?? PAYSTACK_CURRENCY;
     const reference = event.data.reference ?? `webhook_${id().slice(0, 8)}`;
 
     const record =
       findUser(email) ?? upsertUser({ email, displayName: email.split("@")[0], role: "reader" });
 
+    const existing = snapshot().grants[record.id];
+    const floor = existing?.expiresAt ? Math.max(Date.now(), new Date(existing.expiresAt).getTime()) : Date.now();
     setGrant(record.id, {
       active: true,
-      expiresAt: new Date(Date.now() + 365 * DAY).toISOString(),
+      expiresAt: new Date(floor + ACCESS_PERIOD_DAYS * DAY).toISOString(),
       source: "paid",
     });
 

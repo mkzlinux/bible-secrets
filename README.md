@@ -45,8 +45,9 @@ SUPABASE_SERVICE_ROLE_KEY=...        # server only
 ```bash
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_live_xxx
 PAYSTACK_SECRET_KEY=sk_live_xxx
-PAYSTACK_CURRENCY=KES
-BIBLE_SECRETS_PRICE=500              # minor units
+PAYSTACK_CURRENCY=USD
+BIBLE_SECRETS_PRICE=5                # major units → US$5, in minor units on the wire
+BIBLE_SECRETS_PERIOD_DAYS=30         # one payment buys a month
 ```
 
 `/api/paystack/webhook` verifies the `x-paystack-signature` HMAC and writes the entitlement;
@@ -105,7 +106,7 @@ data/library.json           the catalog compiled from the Drive library
 |---|---|
 | **Guest** | Reads ~40 % of every series — the public parts stream in full, plus every free sample. Never sees a vault file. |
 | **Member (signed in)** | 90 days of everything, no card. This is the “free for about three months” promise. |
-| **After the trial** | Small key fee (Paystack, per currency) — or an admin grant. Lapsed members fall back to the 40 %. |
+| **After the trial** | **US$5/month** by Paystack — or an admin grant. Lapsed members fall back to the 40 %; nothing is deleted. |
 | **Coffee** | A one-off gift that keeps the engine running; it does not buy access. |
 
 ## The session rhythm
@@ -116,8 +117,18 @@ counts down to the next one and `/live` holds the room.
 ## Content
 
 Series, volumes and session media live in the Google Drive library; the catalog is compiled with
-`python3 scripts/build_catalog.py`. Posters and backdrops are generated art placeholders — drop the
+`python3 scripts/build_catalog.py`. Public parts are served from their (public) Drive copy — no
+account, no token — while every vault volume lives in the **private** `books` bucket and is signed
+per request after the entitlement check, so ending a membership ends the access. Guests always land
+on the sample edition, never the vault file. Posters and backdrops are generated art placeholders — drop the
 real key art into `public/posters/` with the same filenames and nothing else has to change.
+
+## Go live
+
+`docs/GO-LIVE.md` is the whole sequence: create the Supabase project, paste the schema,
+verify it with `npm run check:supabase`, make yourself the publisher, move the vault
+into private Storage, connect Paystack, host the engine, deploy. Everything is already
+wired — it only needs the keys.
 
 ## Deploy
 

@@ -3,7 +3,12 @@ import Link from "next/link";
 import { PaystackButton } from "@/components/PaystackButton";
 import { entitlementFor } from "@/lib/access";
 import { getCurrentUser } from "@/lib/auth";
-import { ACCESS_PRICE, PAYSTACK_PUBLIC_KEY, PAYSTACK_CURRENCY } from "@/lib/config";
+import {
+  ACCESS_PERIOD_DAYS,
+  ACCESS_PRICE,
+  PAYSTACK_CURRENCY,
+  PAYSTACK_PUBLIC_KEY,
+} from "@/lib/config";
 import { getLibrary } from "@/lib/library";
 import { currency, formatDateTime } from "@/lib/utils";
 
@@ -18,7 +23,8 @@ export default async function MembershipPage({
   const user = await getCurrentUser();
   const entitlement = entitlementFor(user);
   const { site } = getLibrary();
-  const price = ACCESS_PRICE || site.membership.priceKes;
+  const price = ACCESS_PRICE || site.membership.price;
+  const periodDays = ACCESS_PERIOD_DAYS || site.membership.periodDays || 30;
 
   return (
     <div className="relative isolate">
@@ -52,9 +58,9 @@ export default async function MembershipPage({
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           <Card
             title="The vault"
-            price={`${currency(price, PAYSTACK_CURRENCY)} once`}
+            price={`${currency(price, PAYSTACK_CURRENCY)} / month`}
             points={[
-              "All series, volumes and comic issues",
+              `${periodDays} days per key — renews only when you pay again`,
               "Cinematic reader, bookmarks, resume",
               "PDF downloads while access is active",
               "Every new volume the week it ships",

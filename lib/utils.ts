@@ -54,8 +54,8 @@ export function countdown(targetIso: string, now: Date = new Date()) {
   };
 }
 
-export function currency(amount: number, code = "KES") {
-  const symbol = code === "KES" ? "KSh" : code === "USD" ? "$" : code + " ";
+export function currency(amount: number, code = "USD") {
+  const symbol = code === "USD" ? "$" : code === "KES" ? "KSh" : code === "GBP" ? "£" : code + " ";
   return `${symbol}${amount.toLocaleString("en-KE")}`;
 }
 

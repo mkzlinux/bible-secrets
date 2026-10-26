@@ -4,6 +4,7 @@ import { grantAccessAction, setRoleAction } from "@/app/actions/admin";
 import { entitlementFor, TRIAL_DAYS } from "@/lib/access";
 import { isAdmin } from "@/lib/auth";
 import { snapshot } from "@/lib/store";
+import { PAYSTACK_CURRENCY } from "@/lib/config";
 import { currency, formatDate, formatDateTime } from "@/lib/utils";
 
 export const metadata = { title: "Members · Publisher" };
@@ -30,7 +31,7 @@ export default async function AdminUsersPage() {
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <Stat label="Members" value={String(store.users.length)} />
         <Stat label="Trial length" value={`${TRIAL_DAYS} days`} />
-        <Stat label="Recorded revenue" value={currency(revenue, "KES")} />
+        <Stat label="Recorded revenue" value={currency(revenue, PAYSTACK_CURRENCY)} />
       </div>
 
       <div className="mt-6 rounded-2xl border border-cream/10 bg-ink-900/70 p-5">
@@ -55,7 +56,7 @@ export default async function AdminUsersPage() {
             <input
               name="days"
               type="number"
-              defaultValue={365}
+              defaultValue={30}
               className="w-24 rounded-lg border border-cream/15 bg-ink-950/70 px-3 py-2.5 text-[13px] text-cream"
             />
           </label>

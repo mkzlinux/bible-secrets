@@ -1,17 +1,34 @@
 import { NextResponse } from "next/server";
-import { findUser, id, recordPayment, setGrant, upsertUser } from "@/lib/store";
-import { PAYSTACK_SECRET_KEY } from "@/lib/config";
+import { findUser, id, recordPayment, setGrant, snapshot, upsertUser } from "@/lib/store";
+import { ACCESS_PERIOD_DAYS, PAYSTACK_CURRENCY, PAYSTACK_SECRET_KEY } from "@/lib/config";
 import { getCurrentUser } from "@/lib/auth";
 
 const DAY = 86_400_000;
-const ACCESS_DAYS = 365;
+/** One payment extends access by one billing period (default: a month). */
+const ACCESS_DAYS = ACCESS_PERIOD_DAYS;
 
-async function grantFor(email: string, reference: string, source: "paid" | "admin", amount = 0, currency = "KES") {
+/** Never shorten an active grant: stack the new period on top of what is left. */
+function extendFrom(current?: { expiresAt: string | null } | null) {
+  const now = Date.now();
+  const base = current?.expiresAt ? Math.max(now, new Date(current.expiresAt).getTime()) : now;
+  return new Date(base + ACCESS_DAYS * DAY).toISOString();
+}
+
+async function grantFor(
+  email: string,
+  reference: string,
+  source: "paid" | "admin",
+  amount = 0,
+  currency = PAYSTACK_CURRENCY,
+) {
   const record =
     findUser(email) ?? upsertUser({ email, displayName: email.split("@")[0], role: "reader" });
 
-  const expiresAt = new Date(Date.now() + ACCESS_DAYS * DAY).toISOString();
-  setGrant(record.id, { active: true, expiresAt, source });
+  setGrant(record.id, {
+    active: true,
+    expiresAt: extendFrom(snapshot().grants[record.id]),
+    source,
+  });
 
   recordPayment({
     id: id(),
@@ -39,7 +56,7 @@ export async function GET(request: Request) {
   if (demo || !PAYSTACK_SECRET_KEY) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.redirect(`${origin}/signup?next=${encodeURIComponent(next)}`);
-    await grantFor(user.email, reference ?? `demo_${id().slice(0, 8)}`, "paid", 0, "KES");
+    await grantFor(user.email, reference ?? `demo_${id().slice(0, 8)}`, "paid", 0, PAYSTACK_CURRENCY);
     return NextResponse.redirect(`${origin}${next}?status=success&demo=1`);
   }
 
@@ -73,7 +90,7 @@ export async function GET(request: Request) {
     reference,
     "paid",
     (data.data?.amount ?? 0) / 100,
-    data.data?.currency ?? "KES",
+    data.data?.currency ?? PAYSTACK_CURRENCY,
   );
 
   return NextResponse.redirect(`${origin}${next}?status=success&reference=${reference}`);

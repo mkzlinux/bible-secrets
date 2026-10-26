@@ -137,7 +137,7 @@ export default async function HomePage() {
                   {user ? "Manage access" : "Create free account"}
                 </Link>
                 <span className="text-[12.5px] text-cream-dim">
-                  {currency(site.membership.priceKes, site.membership.currency)} after{" "}
+                  {currency(site.membership.price, site.membership.currency)}/month after{" "}
                   {site.membership.trialDays} days · cancel by not paying
                 </span>
               </div>

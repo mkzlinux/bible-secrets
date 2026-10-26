@@ -51,14 +51,15 @@ SITE = {
     },
     "membership": {
         "trialDays": 90,
-        "headline": "Three months, then a small key fee",
+        "headline": "Three months free, then $5 a month",
         "blurb": (
             "Sign in and you have full access for your first three months. After that, "
-            "a small once-off payment keeps the vault open — the Bible Technology engine, "
-            "the locked volumes and every new release."
+            "$5 a month keeps the vault open — the Bible Technology engine, the locked "
+            "volumes and every new release. Cancel whenever; the free 40 % stays free."
         ),
-        "priceKes": 500,
-        "currency": "KES",
+        "price": 5,
+        "currency": "USD",
+        "periodDays": 30,
         "coffee": {
             "label": "Buy Tinotenda a coffee",
             "blurb": "Not ready to subscribe? A coffee keeps the presses running.",

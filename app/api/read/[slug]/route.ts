@@ -6,12 +6,22 @@ import { gateForPart } from "@/lib/access";
 import { getCurrentUser } from "@/lib/auth";
 import { createSupabaseAdminClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { BUCKETS } from "@/lib/config";
+import type { Part } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Streams the volume. Public parts are open to anyone; members' parts require
- * an active entitlement. Supports `?download=1` for the attachment form.
+ * Streams a volume. Three sources, in a deliberate order:
+ *
+ *   vault parts   → private Supabase Storage (`storage://books/<key>`), signed
+ *                   after the entitlement check. Drive is *never* used for the
+ *                   vault, so a leaked link cannot outlive a membership.
+ *   public parts  → the public Drive copy, for the free 40 %.
+ *   either        → the generated sample edition, so the reader still opens
+ *                   while the vault is being filled.
+ *
+ * Guests never reach the real file: they get the sample edition and the reader
+ * lays its unlock card over the pages.
  */
 export async function GET(
   request: Request,
@@ -28,99 +38,119 @@ export async function GET(
   const url = new URL(request.url);
   const download = url.searchParams.get("download") === "1";
   const filename = `${part.title.replace(/[^\w\s.-]/g, "").trim()}.pdf`;
+  const isVault = part.access !== "public";
 
-  /* ------------------------------------------------------- the free 40 % */
-  // A locked volume still hands over its public sample edition: the reader
-  // shows those pages to a guest and overlays the unlock card on top of them.
-  // The vault file itself is never touched on this path.
+  /* --------------------------------------------------------- the free 40 % */
   if (!gate.allowed) {
     const sample = await sampleEdition(slug);
     if (sample) {
       return new NextResponse(new Uint8Array(sample), {
-        headers: { ...pdfHeaders(`${filename} (sample)`, download), "x-bible-secrets-preview": "1" },
+        headers: {
+          ...pdfHeaders(`${filename} (sample)`, download),
+          "x-bible-secrets-preview": "1",
+        },
       });
     }
     return NextResponse.json({ error: "locked", reason: gate.reason }, { status: 402 });
   }
 
-  /* ------------------------------------------------------- self-hosted file */
-  if (part.streamUrl) {
-    if (part.streamUrl.startsWith("/")) {
-      try {
-        const filePath = path.join(process.cwd(), "public", part.streamUrl.replace(/^\//, ""));
-        const data = await fs.readFile(filePath);
-        return new NextResponse(new Uint8Array(data), {
-          headers: pdfHeaders(filename, download),
-        });
-      } catch {
-        return NextResponse.json({ error: "file_missing" }, { status: 404 });
-      }
-    }
-
-    if (isSupabaseConfigured() && part.streamUrl.includes("/object/")) {
-      const admin = await createSupabaseAdminClient();
-      if (admin) {
-        const key = part.streamUrl.split(`/${BUCKETS.books}/`)[1];
-        if (key) {
-          const { data } = await admin.storage.from(BUCKETS.books).createSignedUrl(key, 60 * 60);
-          if (data?.signedUrl) {
-            const res = await fetch(data.signedUrl);
-            if (res.ok && res.body) {
-              return new NextResponse(res.body as ReadableStream, {
-                headers: pdfHeaders(filename, download),
-              });
-            }
-          }
-        }
-      }
-    }
-
-    const remote = await fetch(part.streamUrl);
-    if (remote.ok && remote.body) {
-      return new NextResponse(remote.body as ReadableStream, {
-        headers: pdfHeaders(filename, download, remote.headers.get("content-length")),
-      });
-    }
-  }
-
-  /* --------------------------------------------------- local sample edition */
-  // Keeps the reader demonstrable before the vault (Drive / Storage) is wired up.
-  const sample = await sampleEdition(slug);
-  if (sample) {
-    return new NextResponse(new Uint8Array(sample), {
-      headers: pdfHeaders(`${filename} (sample)`, download),
+  /* ---------------------------------------------- 1 · private vault (Storage) */
+  const vault = await storageEdition(part);
+  if (vault) {
+    return new NextResponse(vault.body, {
+      headers: {
+        ...pdfHeaders(filename, download, vault.length),
+        "x-bible-secrets-source": "storage",
+      },
     });
   }
 
-  /* --------------------------------------------------------- Google Drive */
-  if (part.downloadUrl) {
+  /* ------------------------------------------------- 2 · file on this server */
+  if (part.streamUrl?.startsWith("/")) {
+    try {
+      const filePath = path.join(process.cwd(), "public", part.streamUrl.replace(/^\//, ""));
+      const data = await fs.readFile(filePath);
+      return new NextResponse(new Uint8Array(data), {
+        headers: { ...pdfHeaders(filename, download), "x-bible-secrets-source": "local" },
+      });
+    } catch {
+      return NextResponse.json({ error: "file_missing" }, { status: 404 });
+    }
+  }
+
+  /* ------------------------------------- 3 · public Drive copy (never vault) */
+  if (!isVault && part.downloadUrl) {
     try {
       const res = await fetch(part.downloadUrl, { redirect: "follow" });
       const contentType = res.headers.get("content-type") ?? "";
       if (res.ok && res.body && !contentType.includes("text/html")) {
         return new NextResponse(res.body as ReadableStream, {
-          headers: pdfHeaders(filename, download, res.headers.get("content-length")),
+          headers: {
+            ...pdfHeaders(filename, download, res.headers.get("content-length")),
+            "x-bible-secrets-source": "drive",
+          },
         });
       }
     } catch (error) {
-      console.warn("[read] drive fetch failed, falling back to preview frame", error);
+      console.warn("[read] drive fetch failed, serving the sample edition", error);
     }
-
-    // Interstitial page or an unreachable host: the browser can still load the
-    // Drive preview frame directly, so hand it over rather than failing.
-    if (part.previewUrl) {
-      return NextResponse.redirect(part.previewUrl);
-    }
-    return NextResponse.json(
-      {
-        error: "drive_unavailable",
-        hint: "Make the Drive file public, or upload it to Supabase Storage and set streamUrl.",
-      },
-      { status: 502 },
-    );
   }
 
-  return NextResponse.json({ error: "no_source" }, { status: 404 });
+  /* --------------------------------------------- 4 · sample edition fallback */
+  // Demo mode: the vault is still filling, so an entitled member keeps reading.
+  const sample = await sampleEdition(slug);
+  if (sample) {
+    return new NextResponse(new Uint8Array(sample), {
+      headers: { ...pdfHeaders(`${filename} (sample)`, download), "x-bible-secrets-source": "sample" },
+    });
+  }
+
+  /* ------------------------------- 5 · last resort: the public Drive preview */
+  if (!isVault && part.previewUrl) {
+    return NextResponse.redirect(part.previewUrl);
+  }
+
+  return NextResponse.json(
+    {
+      error: "no_source",
+      hint: isVault
+        ? "Upload the vault PDF from the publisher dashboard — it goes into the private books bucket."
+        : "Set a Drive id or upload the file for this public part.",
+    },
+    { status: 404 },
+  );
+}
+
+/**
+ * Signs a Storage object for an entitled reader. Accepts both the reference the
+ * dashboard writes (`storage://books/<key>`) and a legacy public URL that
+ * happens to point at the private bucket.
+ */
+async function storageEdition(
+  part: Part,
+): Promise<{ body: ReadableStream; length: string | null } | null> {
+  const ref = part.streamUrl;
+  if (!ref || !isSupabaseConfigured()) return null;
+
+  const key = ref.startsWith("storage://")
+    ? ref.replace(/^storage:\/\/[^/]+\//, "")
+    : ref.includes(`/${BUCKETS.books}/`)
+      ? ref.split(`/${BUCKETS.books}/`)[1]
+      : null;
+  if (!key) return null;
+
+  const admin = await createSupabaseAdminClient();
+  if (!admin) return null;
+
+  const { data, error } = await admin.storage.from(BUCKETS.books).createSignedUrl(key, 60 * 60);
+  if (error || !data?.signedUrl) {
+    console.warn("[read] could not sign the vault object", error?.message);
+    return null;
+  }
+
+  const res = await fetch(data.signedUrl);
+  if (!res.ok || !res.body) return null;
+  return { body: res.body as ReadableStream, length: res.headers.get("content-length") };
 }
 
 /** The generated public sample for a volume, if one exists. */

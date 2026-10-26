@@ -107,7 +107,10 @@ python3 server.py           # http://127.0.0.1:8080
 echo "BERESHIT_URL=http://127.0.0.1:8080" >> .env.local`}
         </pre>
         <p className="mt-4 text-[12.5px] leading-relaxed text-cream-dim">
-          Adding Supabase keys moves auth, books, storage and reader data onto Postgres
+          Public parts stream from their Drive copy; vault volumes live in a private bucket and
+          are signed per request, so ending a membership ends the access. Guests always get the
+          sample edition, never the vault file. Adding Supabase keys moves auth, books, storage and
+          reader data onto Postgres
           (<code className="rounded bg-cream/10 px-1.5 py-0.5">supabase/schema.sql</code> is the
           whole schema plus row-level security). Adding Paystack keys turns the 90-day trial into a
           real checkout.
@@ -118,8 +121,8 @@ echo "BERESHIT_URL=http://127.0.0.1:8080" >> .env.local`}
         <h2 className="font-display text-lg font-bold text-cream">Access model</h2>
         <ul className="mt-3 space-y-2 font-serif text-[1.06rem] leading-relaxed text-cream/80">
           <li>· ~40% of every series is public: no account, no email, no friction.</li>
-          <li>· Signing in opens the whole vault for 90 days.</li>
-          <li>· After that, a small key fee (or an admin grant) keeps it open; a coffee always helps.</li>
+          <li>· Signing in opens the whole vault for 90 days, no card.</li>
+          <li>· After that, US$5 a month (or an admin grant) keeps it open; a coffee always helps.</li>
           <li>· Vault PDFs are never exposed: they stream through an entitlement-checked route.</li>
         </ul>
       </section>

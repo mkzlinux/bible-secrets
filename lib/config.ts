@@ -13,9 +13,11 @@ export const BUCKETS = {
 
 export const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? "";
 export const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY ?? "";
-export const PAYSTACK_CURRENCY = process.env.PAYSTACK_CURRENCY ?? "KES";
-/** Amount in the major unit (e.g. KSh). Paystack wants the minor unit (×100). */
-export const ACCESS_PRICE = Number(process.env.BIBLE_SECRETS_PRICE ?? "500");
+export const PAYSTACK_CURRENCY = process.env.PAYSTACK_CURRENCY ?? "USD";
+/** Amount in the major unit (e.g. $5). Paystack wants the minor unit (×100). */
+export const ACCESS_PRICE = Number(process.env.BIBLE_SECRETS_PRICE ?? "5");
+/** One key fee buys this many days — the key renews monthly. */
+export const ACCESS_PERIOD_DAYS = Number(process.env.BIBLE_SECRETS_PERIOD_DAYS ?? "30");
 
 /** Server-side address of the Bereshit Lab engine (health checks). */
 export const ENGINE_URL =

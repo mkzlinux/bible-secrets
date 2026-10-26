@@ -72,8 +72,9 @@ export interface SiteConfig {
     trialDays: number;
     headline: string;
     blurb: string;
-    priceKes: number;
+    price: number;
     currency: string;
+    periodDays: number;
     coffee: { label: string; blurb: string; url: string };
   };
 }

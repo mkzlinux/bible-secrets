@@ -2,12 +2,15 @@
   "name": "bible-secrets",
   "version": "0.1.0",
   "private": true,
-  "description": "Bible Secrets with Tinotenda Gwiriri — a cinematic Bible-study platform. Built in conjunction with Grieyx Studios.",
+  "description": "Bible Secrets with Tinotenda Gwiriri \u2014 a cinematic Bible-study platform. Built in conjunction with Grieyx Studios.",
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:supabase": "node scripts/check-supabase.mjs",
+    "catalog": "python3 scripts/build_catalog.py",
+    "samples": "python3 scripts/make_sample_pdfs.py"
   },
   "dependencies": {
     "@fontsource/cinzel": "5.3.0",

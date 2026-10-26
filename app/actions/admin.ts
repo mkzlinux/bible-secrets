@@ -31,7 +31,14 @@ function slugify(input: string) {
     .slice(0, 70);
 }
 
-/** Save an upload to Supabase Storage when configured, else to /public/uploads. */
+/**
+ * Save an upload to Supabase Storage when configured, else to /public/uploads.
+ *
+ * `covers` and `media` are public buckets, so they yield a public URL. The
+ * `books` bucket is private, so a manuscript is stored as a `storage://`
+ * reference that only the read route can turn into a short-lived signed URL —
+ * never as a link that would keep working after a membership ends.
+ */
 async function storeUpload(file: File, kind: "covers" | "books" | "media") {
   const clean = file.name.replace(/[^\w.-]+/g, "-");
   const filename = `${Date.now()}-${clean}`;
@@ -44,6 +51,7 @@ async function storeUpload(file: File, kind: "covers" | "books" | "media") {
       .from(bucket)
       .upload(filename, bytes, { contentType: file.type || "application/octet-stream", upsert: false });
     if (error) throw new Error(error.message);
+    if (kind === "books") return `storage://${bucket}/${filename}`;
     const { data } = admin.storage.from(bucket).getPublicUrl(filename);
     return data.publicUrl;
   }
@@ -219,7 +227,7 @@ export async function grantAccessAction(formData: FormData): Promise<void> {
   if (action === "revoke") {
     setGrant(record.id, { active: false, expiresAt: null, source: "admin" });
   } else {
-    const days = Number(formData.get("days") ?? 365) || 365;
+    const days = Number(formData.get("days") ?? 30) || 30;
     setGrant(record.id, {
       active: true,
       expiresAt: new Date(Date.now() + days * 86_400_000).toISOString(),
